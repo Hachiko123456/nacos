@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * 服务端的配置文件类
+ * 只缓存了MD5，用于比较配置是否发生了变更，只用于客户端长轮询配置等场景
  * Cache item.
  *
  * @author Nacos
@@ -119,9 +121,11 @@ public class CacheItem {
     }
     
     final String groupKey;
-    
+
+    // 配置MD5
     public volatile String md5 = Constants.NULL;
-    
+
+    // 更新时间
     public volatile long lastModifiedTs;
     
     /**
@@ -140,6 +144,7 @@ public class CacheItem {
     public volatile Map<String, Long> tagLastModifiedTs;
     
     public SimpleReadWriteLock rwLock = new SimpleReadWriteLock();
-    
+
+    // 配置文件类型：text/properties/yaml
     public String type;
 }

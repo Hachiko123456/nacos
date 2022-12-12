@@ -39,16 +39,19 @@ public class Instance implements Serializable {
     private static final long serialVersionUID = -742906310567291979L;
     
     /**
+     * 唯一标识
      * unique id of this instance.
      */
     private String instanceId;
     
     /**
+     * ip地址
      * instance ip.
      */
     private String ip;
     
     /**
+     * 端口
      * instance port.
      */
     private int port;
@@ -70,6 +73,7 @@ public class Instance implements Serializable {
     
     /**
      * If instance is ephemeral.
+     * 是否临时节点
      *
      * @since 1.0.0
      */
@@ -77,16 +81,19 @@ public class Instance implements Serializable {
     
     /**
      * cluster information of instance.
+     * 所属集群
      */
     private String clusterName;
     
     /**
      * Service information of instance.
+     * 服务名=分组+服务
      */
     private String serviceName;
     
     /**
      * user extended attributes.
+     * 元数据
      */
     private Map<String, String> metadata = new HashMap<String, String>();
     

@@ -47,6 +47,7 @@ import static com.alibaba.nacos.config.server.utils.LogUtil.FATAL_LOG;
 import static com.alibaba.nacos.config.server.utils.LogUtil.DEFAULT_LOG;
 
 /**
+ * 负责管理所有内存配置CacheItem
  * Config service.
  *
  * @author Nacos
@@ -89,8 +90,10 @@ public class ConfigCacheService {
         }
         
         try {
+            // 计算md5
             final String md5 = MD5Utils.md5Hex(content, Constants.ENCODE);
-            
+
+            // 对比md5与内存中配置的md5是否一致
             if (md5.equals(ConfigCacheService.getContentMd5(groupKey)) && DiskUtil.targetFile(dataId, group, tenant).exists()) {
                 DUMP_LOG.warn("[dump-ignore] ignore to save cache file. groupKey={}, md5={}, lastModifiedOld={}, "
                                 + "lastModifiedNew={}", groupKey, md5, ConfigCacheService.getLastModifiedTs(groupKey),
@@ -98,6 +101,7 @@ public class ConfigCacheService {
             } else if (!PropertyUtil.isDirectRead()) {
                 DiskUtil.saveToDisk(dataId, group, tenant, content);
             }
+            // 更新内存配置中的md5，发布LocalDataChangeEvent事件
             updateMd5(groupKey, md5, lastModifiedTs);
             return true;
         } catch (IOException ioe) {
@@ -456,6 +460,7 @@ public class ConfigCacheService {
     }
     
     /**
+     * 更新配置的md5
      * Update md5 value.
      *
      * @param groupKey       groupKey string value.
@@ -582,6 +587,7 @@ public class ConfigCacheService {
     }
     
     /**
+     * 获取缓存配置
      * Get and return content cache.
      *
      * @param groupKey groupKey string value.
@@ -595,7 +601,13 @@ public class ConfigCacheService {
         CacheItem item = CACHE.get(groupKey);
         return (null != item) ? item.lastModifiedTs : 0L;
     }
-    
+
+    /**
+     * 比较入参md5与缓存md5是否一致
+     * @param groupKey
+     * @param md5
+     * @return boolean
+     **/
     public static boolean isUptodate(String groupKey, String md5) {
         String serverMd5 = ConfigCacheService.getContentMd5(groupKey);
         return StringUtils.equals(md5, serverMd5);

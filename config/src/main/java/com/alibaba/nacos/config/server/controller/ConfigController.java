@@ -166,6 +166,7 @@ public class ConfigController {
         String betaIps = request.getHeader("betaIps");
         ConfigInfo configInfo = new ConfigInfo(dataId, group, tenant, appName, content);
         configInfo.setType(type);
+        // 更新数据库和发布ConfigDataChangeEvent事件
         if (StringUtils.isBlank(betaIps)) {
             if (StringUtils.isBlank(tag)) {
                 persistService.insertOrUpdate(srcIp, srcUser, configInfo, time, configAdvanceInfo, true);
@@ -304,6 +305,7 @@ public class ConfigController {
     }
     
     /**
+     * 配置监听
      * The client listens for configuration changes.
      */
     @PostMapping("/listener")

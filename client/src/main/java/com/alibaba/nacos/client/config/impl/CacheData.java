@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
+ * 配置文件的抽象，一个groupKey对应一个CacheData
  * Listener Management.
  *
  * @author Nacos
@@ -291,9 +292,11 @@ public class CacheData {
         this.tenant = tenant;
         listeners = new CopyOnWriteArrayList<ManagerListenerWrap>();
         this.isInitializing = true;
+        // 从本地文件系统加载配置内容，failover > snapshot
         this.content = loadCacheContentFromDiskLocal(name, dataId, group, tenant);
         this.encryptedDataKey = loadEncryptedDataKeyFromDiskLocal(name, dataId, group, tenant);
         // FIXME temporary fix https://github.com/alibaba/nacos/issues/7039
+        // 计算md5
         this.md5 = getMd5String(content, encryptedDataKey);
     }
     
@@ -305,7 +308,8 @@ public class CacheData {
      * FIXME temporary provide for {@link #getMd5String(String, String)}.
      */
     private static ConfigFilterChainManager tmpStaticConfigFilterChainManager;
-    
+
+    // 对查询配置的请求和响应提供钩子处理
     private final ConfigFilterChainManager configFilterChainManager;
     
     public final String dataId;
@@ -313,7 +317,8 @@ public class CacheData {
     public final String group;
     
     public final String tenant;
-    
+
+    // 注册再这个配置上的监听器
     private final CopyOnWriteArrayList<ManagerListenerWrap> listeners;
     
     private volatile String md5;
@@ -327,15 +332,19 @@ public class CacheData {
      * last modify time.
      */
     private volatile long localConfigLastModified;
-    
+
+    // 配置
     private volatile String content;
     
     private volatile String encryptedDataKey;
-    
+
+    // 长轮询任务id
     private int taskId;
-    
+
+    // 是否正在初始化
     private volatile boolean isInitializing = true;
-    
+
+    // 配置类型 TEXT、JSON、YAML
     private String type;
     
     public String getEncryptedDataKey() {

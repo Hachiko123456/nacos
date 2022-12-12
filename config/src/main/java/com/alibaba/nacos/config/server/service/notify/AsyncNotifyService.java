@@ -50,6 +50,7 @@ import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * 本地配置更新
  * Async notify service.
  *
  * @author Nacos
@@ -77,14 +78,17 @@ public class AsyncNotifyService {
                     String group = evt.group;
                     String tenant = evt.tenant;
                     String tag = evt.tag;
+                    // 获取nacos集群中所有的节点
                     Collection<Member> ipList = memberManager.allMembers();
                     
                     // In fact, any type of queue here can be
+                    // 每个节点组成一个Task
                     Queue<NotifySingleTask> queue = new LinkedList<NotifySingleTask>();
                     for (Member member : ipList) {
                         queue.add(new NotifySingleTask(dataId, group, tenant, tag, dumpTs, member.getAddress(),
                                 evt.isBeta));
                     }
+                    // 提交AsyncTask到其他线程执行
                     ConfigExecutor.executeAsyncNotify(new AsyncTask(nacosAsyncRestTemplate, queue));
                 }
             }
@@ -119,6 +123,7 @@ public class AsyncNotifyService {
         }
         
         private void executeAsyncInvoke() {
+            // 遍历nacos集群中的节点
             while (!queue.isEmpty()) {
                 NotifySingleTask task = queue.poll();
                 String targetIp = task.getTargetIP();
@@ -131,6 +136,7 @@ public class AsyncNotifyService {
                                 task.getLastModified(), InetUtils.getSelfIP(), ConfigTraceService.NOTIFY_EVENT_UNHEALTH,
                                 0, task.target);
                         // get delay time and set fail count to the task
+                        // 如果目标nacos实例非健康状态，提交一个延迟任务发起请求
                         asyncTaskExecute(task);
                     } else {
                         Header header = Header.newInstance();
@@ -140,6 +146,8 @@ public class AsyncNotifyService {
                             header.addParam("isBeta", "true");
                         }
                         AuthHeaderUtil.addIdentityToHeader(header);
+                        // 请求/v1/cs/communication/dataChange?dataId=cfg0&group=DEFAULT_GROUP
+                        // 为什么要用http发起请求？不直接调用api？
                         restTemplate.get(task.url, header, Query.EMPTY, String.class, new AsyncNotifyCallBack(task));
                     }
                 }

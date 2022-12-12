@@ -70,6 +70,7 @@ public class ClientWorker implements Closeable {
     private static final Logger LOGGER = LogUtils.logger(ClientWorker.class);
     
     /**
+     * 添加监听器
      * Add listeners for tenant.
      *
      * @param dataId    dataId of data
@@ -197,6 +198,7 @@ public class ClientWorker implements Closeable {
                 params.put("group", group);
                 params.put("tenant", tenant);
             }
+            // 请求/v1/cs/configs
             result = agent.httpGet(Constants.CONFIG_CONTROLLER_PATH, null, params, agent.getEncode(), readTimeout);
         } catch (Exception ex) {
             String message = String
@@ -205,7 +207,8 @@ public class ClientWorker implements Closeable {
             LOGGER.error(message, ex);
             throw new NacosException(NacosException.SERVER_ERROR, ex);
         }
-        
+
+        // 处理返回结果，如果200和404，更新本地snapshot文件，404就把本地的snapshot文件删掉
         switch (result.getCode()) {
             case HttpURLConnection.HTTP_OK:
                 LocalConfigInfoProcessor.saveSnapshot(agent.getName(), dataId, group, tenant, result.getData());
@@ -308,6 +311,7 @@ public class ClientWorker implements Closeable {
         // Dispatch tasks.
         int listenerSize = cacheMap.size();
         // Round up the longingTaskCount.
+        // cacheMap大小/3000向上取整
         int longingTaskCount = (int) Math.ceil(listenerSize / ParamUtil.getPerTaskConfigSize());
         if (longingTaskCount > currentLongingTaskCount) {
             for (int i = (int) currentLongingTaskCount; i < longingTaskCount; i++) {
@@ -345,6 +349,7 @@ public class ClientWorker implements Closeable {
             }
         }
         boolean isInitializingCacheList = !inInitializingCacheList.isEmpty();
+        // 实际发起请求
         return checkUpdateConfigStr(sb.toString(), isInitializingCacheList);
     }
     
@@ -361,9 +366,11 @@ public class ClientWorker implements Closeable {
         Map<String, String> params = new HashMap<String, String>(2);
         params.put(Constants.PROBE_MODIFY_REQUEST, probeUpdateString);
         Map<String, String> headers = new HashMap<String, String>(2);
+        // 长轮询超时时间30s
         headers.put("Long-Pulling-Timeout", "" + timeout);
         
         // told server do not hang me up if new initializing cacheData added in
+        // 告诉服务端，本次长轮询包含首次监听的配置项，不要hold住请求，立即返回
         if (isInitializingCacheList) {
             headers.put("Long-Pulling-Timeout-No-Hangup", "true");
         }
@@ -377,12 +384,14 @@ public class ClientWorker implements Closeable {
             // increase the client's read timeout to avoid this problem.
             
             long readTimeoutMs = timeout + (long) Math.round(timeout >> 1);
+            // 请求/v1/cs/configs/listner
             HttpRestResult<String> result = agent
                     .httpPost(Constants.CONFIG_CONTROLLER_PATH + "/listener", headers, params, agent.getEncode(),
                             readTimeoutMs);
             
             if (result.ok()) {
                 setHealthServer(true);
+                // 解析报文
                 return parseUpdateDataIdResponse(result.getData());
             } else {
                 setHealthServer(false);
@@ -469,7 +478,8 @@ public class ClientWorker implements Closeable {
                         return t;
                     }
                 });
-        
+
+        // 开启一个长轮询任务，每隔10s执行一次
         this.executor.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
@@ -502,7 +512,10 @@ public class ClientWorker implements Closeable {
         ThreadUtils.shutdownThreadPool(executor, LOGGER);
         LOGGER.info("{} do shutdown stop", className);
     }
-    
+
+    /**
+     * 长轮询任务
+     */
     class LongPollingRunnable implements Runnable {
         
         private final int taskId;
@@ -522,8 +535,10 @@ public class ClientWorker implements Closeable {
                     if (cacheData.getTaskId() == taskId) {
                         cacheDatas.add(cacheData);
                         try {
+                            // 判断CacheData是否需要使用failover配置
                             checkLocalConfig(cacheData);
                             if (cacheData.isUseLocalConfigInfo()) {
+                                //
                                 cacheData.checkListenerMd5();
                             }
                         } catch (Exception e) {
@@ -533,11 +548,12 @@ public class ClientWorker implements Closeable {
                 }
                 
                 // check server config
+                // 对于所有非failover配置，执行长轮询，返回发生改变的groupKey /configs/listener
                 List<String> changedGroupKeys = checkUpdateDataIds(cacheDatas, inInitializingCacheList);
                 if (!CollectionUtils.isEmpty(changedGroupKeys)) {
                     LOGGER.info("get changedGroupKeys:" + changedGroupKeys);
                 }
-                
+
                 for (String groupKey : changedGroupKeys) {
                     String[] key = GroupKey.parseKey(groupKey);
                     String dataId = key[0];
@@ -547,10 +563,12 @@ public class ClientWorker implements Closeable {
                         tenant = key[2];
                     }
                     try {
+                        // GET /v1/cs/configs
                         ConfigResponse response = getServerConfig(dataId, group, tenant, 3000L);
                         CacheData cache = cacheMap.get(GroupKey.getKeyTenant(dataId, group, tenant));
                         // FIXME temporary fix https://github.com/alibaba/nacos/issues/7039
                         cache.setEncryptedDataKey(response.getEncryptedDataKey());
+                        // 更新内存中的配置
                         cache.setContent(response.getContent());
                         if (null != response.getConfigType()) {
                             cache.setType(response.getConfigType());
@@ -573,7 +591,8 @@ public class ClientWorker implements Closeable {
                     }
                 }
                 inInitializingCacheList.clear();
-                
+
+                // 都执行完后，再次提交长轮询任务，达到循环的目的
                 executorService.execute(this);
                 
             } catch (Throwable e) {

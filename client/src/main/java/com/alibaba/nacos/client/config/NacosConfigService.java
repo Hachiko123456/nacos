@@ -157,6 +157,7 @@ public class NacosConfigService implements ConfigService {
         }
         
         try {
+            // 读取config-server实时配置，并将snapshot保存到本地文件系统
             ConfigResponse response = worker.getServerConfig(dataId, group, tenant, timeoutMs);
             cr.setContent(response.getContent());
             cr.setEncryptedDataKey(response.getEncryptedDataKey());
@@ -172,7 +173,8 @@ public class NacosConfigService implements ConfigService {
             LOGGER.warn("[{}] [get-config] get from server error, dataId={}, group={}, tenant={}, msg={}",
                     agent.getName(), dataId, group, tenant, ioe.toString());
         }
-        
+
+        // 如果读取config-server发生非403错误，使用本地snapshot文件
         content = LocalConfigInfoProcessor.getSnapshot(agent.getName(), dataId, group, tenant);
         LOGGER.warn("[{}] [get-config] get snapshot ok, dataId={}, group={}, tenant={}, config={}", agent.getName(),
                 dataId, group, tenant, ContentUtils.truncateContent(content));

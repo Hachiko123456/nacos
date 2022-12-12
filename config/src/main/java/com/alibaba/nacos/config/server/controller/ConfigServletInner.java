@@ -137,12 +137,13 @@ public class ConfigServletInner {
                 if (cacheItem.isBeta() && cacheItem.getIps4Beta().contains(clientIp)) {
                     isBeta = true;
                 }
-                
+
                 final String configType =
                         (null != cacheItem.getType()) ? cacheItem.getType() : FileTypeEnum.TEXT.getFileType();
                 response.setHeader("Config-Type", configType);
                 FileTypeEnum fileTypeEnum = FileTypeEnum.getFileTypeEnumByFileExtensionOrFileType(configType);
                 String contentTypeHeader = fileTypeEnum.getContentType();
+                // 根据配置文件类型，决定返回报文的content-type
                 response.setHeader(HttpHeaderConsts.CONTENT_TYPE, contentTypeHeader);
                 
                 File file = null;
@@ -166,9 +167,11 @@ public class ConfigServletInner {
                             if (cacheItem.tagLastModifiedTs != null) {
                                 lastModified = cacheItem.tagLastModifiedTs.get(autoTag);
                             }
+                            // 如果单机部署且使用derby数据源，查询实时配置
                             if (PropertyUtil.isDirectRead()) {
                                 configInfoBase = persistService.findConfigInfo4Tag(dataId, group, tenant, autoTag);
                             } else {
+                                // 如果是集群部署或者使用mysql，读取本地文件系统中的配置
                                 file = DiskUtil.targetTagFile(dataId, group, tenant, autoTag);
                             }
                             

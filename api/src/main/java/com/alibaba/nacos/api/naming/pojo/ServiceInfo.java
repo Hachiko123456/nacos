@@ -40,15 +40,19 @@ public class ServiceInfo {
     private String jsonFromServer = EMPTY;
     
     public static final String SPLITER = "@@";
-    
+
+    // 服务名
     private String name;
-    
+
+    // 分组名
     private String groupName;
-    
+
+    // 集群，逗号分割
     private String clusters;
     
     private long cacheMillis = 1000L;
-    
+
+    // Instance实例
     private List<Instance> hosts = new ArrayList<Instance>();
     
     private long lastRefTime = 0L;

@@ -253,7 +253,9 @@ public class LongPollingService {
             // Do nothing but set fix polling timeout.
         } else {
             long start = System.currentTimeMillis();
+            // 用内存缓存的md5比较，是否有配置项发生变更
             List<String> changedGroups = MD5Util.compareMd5(req, rsp, clientMd5Map);
+            // 有配置项发生变更则立即返回
             if (changedGroups.size() > 0) {
                 generateResponse(req, rsp, changedGroups);
                 LogUtil.CLIENT_LOG.info("{}|{}|{}|{}|{}|{}|{}", System.currentTimeMillis() - start, "instant",
@@ -270,11 +272,13 @@ public class LongPollingService {
         String ip = RequestUtil.getRemoteIp(req);
         
         // Must be called by http thread, or send response.
+        // 开启异步请求
         final AsyncContext asyncContext = req.startAsync();
         
         // AsyncContext.setTimeout() is incorrect, Control by oneself
         asyncContext.setTimeout(0L);
-        
+
+        // 提交一个长轮询任务
         ConfigExecutor.executeLongPolling(
                 new ClientLongPolling(asyncContext, clientMd5Map, ip, probeRequestSize, timeout, appName, tag));
     }
@@ -323,7 +327,10 @@ public class LongPollingService {
      * ClientLongPolling subscibers.
      */
     final Queue<ClientLongPolling> allSubs;
-    
+
+    /**
+     * 普通长轮询任务
+     **/
     class DataChangeTask implements Runnable {
         
         @Override
@@ -332,6 +339,7 @@ public class LongPollingService {
                 ConfigCacheService.getContentBetaMd5(groupKey);
                 for (Iterator<ClientLongPolling> iter = allSubs.iterator(); iter.hasNext(); ) {
                     ClientLongPolling clientSub = iter.next();
+                    // 只处理对当前groupKey有订阅的客户端
                     if (clientSub.clientMd5Map.containsKey(groupKey)) {
                         // If published tag is not in the beta list, then it skipped.
                         if (isBeta && !CollectionUtils.contains(betaIps, clientSub.ip)) {
@@ -344,12 +352,14 @@ public class LongPollingService {
                         }
                         
                         getRetainIps().put(clientSub.ip, System.currentTimeMillis());
+                        // 移除当前ClientLongPolling
                         iter.remove(); // Delete subscribers' relationships.
                         LogUtil.CLIENT_LOG
                                 .info("{}|{}|{}|{}|{}|{}|{}", (System.currentTimeMillis() - changeTime), "in-advance",
                                         RequestUtil
                                                 .getRemoteIp((HttpServletRequest) clientSub.asyncContext.getRequest()),
                                         "polling", clientSub.clientMd5Map.size(), clientSub.probeRequestSize, groupKey);
+                        // 响应客户端
                         clientSub.sendResponse(Arrays.asList(groupKey));
                     }
                 }
@@ -388,11 +398,15 @@ public class LongPollingService {
             MetricsMonitor.getLongPollingMonitor().set(allSubs.size());
         }
     }
-    
+
+    /**
+     * 固定长轮询任务
+     */
     class ClientLongPolling implements Runnable {
         
         @Override
         public void run() {
+            // 提交超时处理任务
             asyncTimeoutFuture = ConfigExecutor.scheduleLongPolling(new Runnable() {
                 @Override
                 public void run() {
@@ -403,6 +417,7 @@ public class LongPollingService {
                         boolean removeFlag = allSubs.remove(ClientLongPolling.this);
                         
                         if (removeFlag) {
+                            // 固定长轮询，比较内存中md5与客户端发起的md5请求是否一致，并响应客户端
                             if (isFixedPolling()) {
                                 LogUtil.CLIENT_LOG
                                         .info("{}|{}|{}|{}|{}|{}", (System.currentTimeMillis() - createTime), "fix",
@@ -417,6 +432,7 @@ public class LongPollingService {
                                     sendResponse(null);
                                 }
                             } else {
+                                // 普通长轮询(默认)，直接返回空
                                 LogUtil.CLIENT_LOG
                                         .info("{}|{}|{}|{}|{}|{}", (System.currentTimeMillis() - createTime), "timeout",
                                                 RequestUtil.getRemoteIp((HttpServletRequest) asyncContext.getRequest()),
@@ -433,7 +449,8 @@ public class LongPollingService {
                 }
                 
             }, timeoutTime, TimeUnit.MILLISECONDS);
-            
+
+            // 将自己加入到队列中
             allSubs.add(this);
         }
         
