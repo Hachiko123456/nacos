@@ -326,11 +326,13 @@ public class CacheData {
     /**
      * whether use local config.
      */
+    // 是否使用failover文件
     private volatile boolean isUseLocalConfig = false;
     
     /**
      * last modify time.
      */
+    // failover配置文件上一次更新的时间戳
     private volatile long localConfigLastModified;
 
     // 配置

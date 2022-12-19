@@ -170,6 +170,7 @@ public abstract class DumpService {
             };
             
             try {
+                // 首次启动，dump数据库中所有配置到文件系统和内存中
                 dumpConfigInfo(dumpAllProcessor);
                 
                 // update Beta cache
@@ -204,6 +205,7 @@ public abstract class DumpService {
                         "Nacos Server did not start because dumpservice bean construction failure :\n" + e.getMessage(),
                         e);
             }
+            // 非单机部署，提交dump任务
             if (!EnvUtil.getStandaloneMode()) {
                 Runnable heartbeat = () -> {
                     String heartBeatTime = TimeUtils.getCurrentTime().toString();

@@ -332,6 +332,7 @@ public class ClientWorker implements Closeable {
     List<String> checkUpdateDataIds(List<CacheData> cacheDatas, List<String> inInitializingCacheList) throws Exception {
         StringBuilder sb = new StringBuilder();
         for (CacheData cacheData : cacheDatas) {
+            // 统计所有非failover的cacheData，拼接为"dataId group md5"或"dataId group md5 namespace"
             if (!cacheData.isUseLocalConfigInfo()) {
                 sb.append(cacheData.dataId).append(WORD_SEPARATOR);
                 sb.append(cacheData.group).append(WORD_SEPARATOR);
@@ -535,10 +536,11 @@ public class ClientWorker implements Closeable {
                     if (cacheData.getTaskId() == taskId) {
                         cacheDatas.add(cacheData);
                         try {
-                            // 判断CacheData是否需要使用failover配置
+                            // 更新内存中的配置
                             checkLocalConfig(cacheData);
+                            // 判断CacheData是否需要使用failover配置
                             if (cacheData.isUseLocalConfigInfo()) {
-                                //
+                                // 使用failover配置则检测content内容是否发生变化，如果变化则通知监听器
                                 cacheData.checkListenerMd5();
                             }
                         } catch (Exception e) {
@@ -563,7 +565,7 @@ public class ClientWorker implements Closeable {
                         tenant = key[2];
                     }
                     try {
-                        // GET /v1/cs/configs
+                        // GET /v1/cs/configs获取服务端的配置
                         ConfigResponse response = getServerConfig(dataId, group, tenant, 3000L);
                         CacheData cache = cacheMap.get(GroupKey.getKeyTenant(dataId, group, tenant));
                         // FIXME temporary fix https://github.com/alibaba/nacos/issues/7039
@@ -592,7 +594,7 @@ public class ClientWorker implements Closeable {
                 }
                 inInitializingCacheList.clear();
 
-                // 都执行完后，再次提交长轮询任务，达到循环的目的
+                // 都执行完后，再次提交长轮询任务，达到循环的效果
                 executorService.execute(this);
                 
             } catch (Throwable e) {

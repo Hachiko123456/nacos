@@ -147,7 +147,7 @@ public class AsyncNotifyService {
                         }
                         AuthHeaderUtil.addIdentityToHeader(header);
                         // 请求/v1/cs/communication/dataChange?dataId=cfg0&group=DEFAULT_GROUP
-                        // 为什么要用http发起请求？不直接调用api？
+                        // 分布式部署，所以用http请求的方式去触发对应的容器操作
                         restTemplate.get(task.url, header, Query.EMPTY, String.class, new AsyncNotifyCallBack(task));
                     }
                 }

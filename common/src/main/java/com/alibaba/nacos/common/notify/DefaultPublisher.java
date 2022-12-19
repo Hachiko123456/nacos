@@ -45,13 +45,16 @@ public class DefaultPublisher extends Thread implements EventPublisher {
     private volatile boolean initialized = false;
     
     private volatile boolean shutdown = false;
-    
+
+    // 事件类型
     private Class<? extends Event> eventType;
-    
+
+    // 订阅者列表
     protected final ConcurrentHashSet<Subscriber> subscribers = new ConcurrentHashSet<Subscriber>();
     
     private int queueMaxSize = -1;
-    
+
+    // 事件队列
     private BlockingQueue<Event> queue;
     
     protected volatile Long lastEventSequence = -1L;

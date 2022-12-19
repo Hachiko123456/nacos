@@ -119,7 +119,8 @@ public class CacheItem {
     public void setType(String type) {
         this.type = type;
     }
-    
+
+    // groupKey = namespace + group + dataId
     final String groupKey;
 
     // 配置MD5

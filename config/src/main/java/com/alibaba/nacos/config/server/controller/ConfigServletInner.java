@@ -152,9 +152,11 @@ public class ConfigServletInner {
                 if (isBeta) {
                     md5 = cacheItem.getMd54Beta();
                     lastModified = cacheItem.getLastModifiedTs4Beta();
+                    // 如果单机部署且使用derby数据源，查询实时配置
                     if (PropertyUtil.isDirectRead()) {
                         configInfoBase = persistService.findConfigInfo4Beta(dataId, group, tenant);
                     } else {
+                        // 如果集群部署 或 使用mysql，读取本地文件系统中的配置
                         file = DiskUtil.targetBetaFile(dataId, group, tenant);
                     }
                     response.setHeader("isBeta", "true");
