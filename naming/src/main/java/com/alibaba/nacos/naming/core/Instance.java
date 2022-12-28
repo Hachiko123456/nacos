@@ -36,6 +36,7 @@ import java.util.regex.Pattern;
 
 /**
  * IP under service.
+ * 客户端服务注册的单位
  *
  * @author nkorange
  */
@@ -49,14 +50,16 @@ public class Instance extends com.alibaba.nacos.api.naming.pojo.Instance impleme
     private static final double MIN_WEIGHT_VALUE = 0.00D;
     
     private static final long serialVersionUID = -6527721638428975306L;
-    
+
+    // 上次心跳时间
     private volatile long lastBeat = System.currentTimeMillis();
     
     @JsonIgnore
     private volatile boolean mockValid = false;
     
     private volatile boolean marked = false;
-    
+
+    // namespace
     private String tenant;
     
     private String app;

@@ -128,11 +128,16 @@ public class DistroMapper extends MemberChangeListener {
     private int distroHash(String serviceName) {
         return Math.abs(serviceName.hashCode() % Integer.MAX_VALUE);
     }
-    
+
+    /**
+     * 监听{@link MembersChangeEvent}事件，当集群有变更时，就会发布该事件
+     * @param event
+     **/
     @Override
     public void onEvent(MembersChangeEvent event) {
         // Here, the node list must be sorted to ensure that all nacos-server's
         // node list is in the same order
+        // 过滤状态为UP和SUSPICIOUS状态的节点作为Distro协议认为的健康节点
         List<String> list = MemberUtil.simpleMembers(MemberUtil.selectTargetMembers(event.getMembers(),
                 member -> NodeState.UP.equals(member.getState()) || NodeState.SUSPICIOUS.equals(member.getState())));
         Collections.sort(list);

@@ -39,7 +39,7 @@ public class Instance implements Serializable {
     private static final long serialVersionUID = -742906310567291979L;
     
     /**
-     * 唯一标识
+     * 唯一标识=分组+集群+服务+ip+端口
      * unique id of this instance.
      */
     private String instanceId;

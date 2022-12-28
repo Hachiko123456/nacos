@@ -537,6 +537,7 @@ public class NamingProxy implements Closeable {
                 }
             }
         } else {
+            // 随机选择某个节点作为第一次请求节点
             Random random = new Random(System.currentTimeMillis());
             int index = random.nextInt(servers.size());
             
@@ -550,6 +551,7 @@ public class NamingProxy implements Closeable {
                         NAMING_LOGGER.debug("request {} failed.", server, e);
                     }
                 }
+                // 发生异常，选择下一个节点尝试请求
                 index = (index + 1) % servers.size();
             }
         }

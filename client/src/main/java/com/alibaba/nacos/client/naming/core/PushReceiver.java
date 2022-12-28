@@ -99,6 +99,7 @@ public class PushReceiver implements Runnable, Closeable {
                 PushPacket pushPacket = JacksonUtils.toObj(json, PushPacket.class);
                 String ack;
                 if ("dom".equals(pushPacket.type) || "service".equals(pushPacket.type)) {
+                    // 处理报文，更新内存注册表
                     hostReactor.processServiceJson(pushPacket.data);
                     
                     // send ack to server
@@ -114,7 +115,8 @@ public class PushReceiver implements Runnable, Closeable {
                     ack = "{\"type\": \"unknown-ack\"" + ", \"lastRefTime\":\"" + pushPacket.lastRefTime
                             + "\", \"data\":" + "\"\"}";
                 }
-                
+
+                // 发送ack报文给服务端
                 udpSocket.send(new DatagramPacket(ack.getBytes(UTF_8), ack.getBytes(UTF_8).length,
                         packet.getSocketAddress()));
             } catch (Exception e) {

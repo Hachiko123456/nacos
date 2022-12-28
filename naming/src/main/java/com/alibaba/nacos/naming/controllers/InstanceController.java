@@ -673,6 +673,7 @@ public class InstanceController {
         
         // now try to enable the push
         try {
+            // udp推送服务新增一个客户端
             if (udpPort > 0 && pushService.canEnablePush(agent)) {
                 
                 pushService
@@ -734,9 +735,10 @@ public class InstanceController {
         }
         
         Map<Boolean, List<Instance>> ipMap = new HashMap<>(2);
+        // 对Instance进行分组，健康和非健康
         ipMap.put(Boolean.TRUE, new ArrayList<>());
         ipMap.put(Boolean.FALSE, new ArrayList<>());
-        
+
         for (Instance ip : srvedIPs) {
             ipMap.get(ip.isHealthy()).add(ip);
         }
@@ -744,7 +746,8 @@ public class InstanceController {
         if (isCheck) {
             result.put("reachProtectThreshold", false);
         }
-        
+
+        // 保护模式
         double threshold = service.getProtectThreshold();
         
         if ((float) ipMap.get(Boolean.TRUE).size() / srvedIPs.size() <= threshold) {

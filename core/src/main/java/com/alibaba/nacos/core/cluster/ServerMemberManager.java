@@ -60,6 +60,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 
 /**
  * Cluster node management in Nacos.
+ * Naocs集群管理
  *
  * <p>{@link ServerMemberManager#init()} Cluster node manager initialization {@link ServerMemberManager#shutdown()} The
  * cluster node manager is down {@link ServerMemberManager#getSelf()} Gets local node information {@link
@@ -84,6 +85,7 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
     
     /**
      * Cluster node list.
+     * 所有nacos节点
      */
     private volatile ConcurrentSkipListMap<String, Member> serverList;
     
@@ -104,21 +106,25 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
     
     /**
      * Addressing pattern instances.
+     * nacos自己如何发现nacos服务
      */
     private MemberLookup lookup;
     
     /**
      * self member obj.
+     * 当前nacos节点
      */
     private volatile Member self;
     
     /**
      * here is always the node information of the "UP" state.
+     * 健康状态的节点地址集合
      */
     private volatile Set<String> memberAddressInfos = new ConcurrentHashSet<>();
     
     /**
      * Broadcast this node element information task.
+     * 集群成员信息广播任务
      */
     private final MemberInfoReportTask infoReportTask = new MemberInfoReportTask();
     
@@ -141,6 +147,7 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
         registerClusterEvent();
         
         // Initializes the lookup mode
+        // 初始化集群列表
         initAndStartLookup();
         
         if (serverList.isEmpty()) {
@@ -202,6 +209,7 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
         Loggers.CLUSTER.debug("member information update : {}", newMember);
         
         String address = newMember.getAddress();
+        // 不在配置文件中的member不会加入集群
         if (!serverList.containsKey(address)) {
             return false;
         }
@@ -456,10 +464,11 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
             }
             
             this.cursor = (this.cursor + 1) % members.size();
+            // 双向健康检查的端
             Member target = members.get(cursor);
             
             Loggers.CLUSTER.debug("report the metadata to the node : {}", target.getAddress());
-            
+            // 调用/v1/core/cluster/report，将自己的Member信息传给对端
             final String url = HttpUtils
                     .buildUrl(false, target.getAddress(), EnvUtil.getContextPath(), Commons.NACOS_CORE_CONTEXT,
                             "/cluster/report");

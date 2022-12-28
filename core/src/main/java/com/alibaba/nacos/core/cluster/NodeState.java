@@ -17,6 +17,7 @@
 package com.alibaba.nacos.core.cluster;
 
 /**
+ * Nacos集群节点状态
  * The life cycle state of a node plays an important role.
  *
  * <p>1.3.0 The unified sinking operation should be done first, and the node state
@@ -33,16 +34,19 @@ public enum NodeState {
     
     /**
      * Node is up and ready for request.
+     * 健康检查通过
      */
     UP,
     
     /**
      * Node may Crash.
+     * 健康检查失败，且失败次数小于一定阈值
      */
     SUSPICIOUS,
     
     /**
      * Node is out of service, something abnormal happened.
+     * 健康检查失败，且失败次数大于一定阈值
      */
     DOWN,
     

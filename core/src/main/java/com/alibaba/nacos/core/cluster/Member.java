@@ -30,17 +30,23 @@ import java.util.TreeMap;
  * @author <a href="mailto:liaochuntao@live.com">liaochuntao</a>
  */
 public class Member implements Comparable<Member>, Cloneable {
-    
+
+    // ip
     private String ip;
-    
+
+    // 端口
     private int port = -1;
-    
+
+    // 状态
     private volatile NodeState state = NodeState.UP;
-    
+
+    // 扩展信息
     private Map<String, Object> extendInfo = Collections.synchronizedMap(new TreeMap<>());
-    
+
+    // ip:port
     private String address = "";
-    
+
+    // 健康检查连续失败次数
     private transient int failAccessCnt = 0;
     
     public Member() {

@@ -95,7 +95,8 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
      * TODO set customized push expire time.
      */
     private long pushCacheMillis = 0L;
-    
+
+    // Cluster注册表，key是集群名称
     private Map<String, Cluster> clusterMap = new HashMap<>();
     
     public Service() {

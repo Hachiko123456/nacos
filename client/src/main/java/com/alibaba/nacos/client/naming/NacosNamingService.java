@@ -51,24 +51,29 @@ import java.util.Properties;
  */
 @SuppressWarnings("PMD.ServiceOrDaoClassShouldEndWithImplRule")
 public class NacosNamingService implements NamingService {
-    
-    /**
-     * Each Naming service should have different namespace.
-     */
+
+    // 命名空间/租户 默认public
     private String namespace;
-    
+
+    // 类似于apollo的meta-server提供的nacos集群地址，如果启用会无视serverList
     private String endpoint;
-    
+
+    // nacos集群地址列表，逗号分割，用户传入
     private String serverList;
-    
+
+    // 本地缓存路劲
     private String cacheDir;
-    
+
+    // 日志的文件名
     private String logName;
-    
+
+    // 服务监听/服务注册表缓存/服务查询
     private HostReactor hostReactor;
-    
+
+    // 心跳维护
     private BeatReactor beatReactor;
-    
+
+    // 命名服务代理
     private NamingProxy serverProxy;
     
     public NacosNamingService(String serverList) throws NacosException {
@@ -210,11 +215,14 @@ public class NacosNamingService implements NamingService {
     @Override
     public void registerInstance(String serviceName, String groupName, Instance instance) throws NacosException {
         NamingUtils.checkInstanceIsLegal(instance);
+        // serviceName=groupName+@@+serviceName
         String groupedServiceName = NamingUtils.getGroupedName(serviceName, groupName);
+        // 如果是临时实例，开启心跳任务
         if (instance.isEphemeral()) {
             BeatInfo beatInfo = beatReactor.buildBeatInfo(groupedServiceName, instance);
             beatReactor.addBeatInfo(groupedServiceName, beatInfo);
         }
+        // POST /nacos/v1/ns/instance
         serverProxy.registerService(groupedServiceName, groupName, instance);
     }
     
@@ -251,10 +259,12 @@ public class NacosNamingService implements NamingService {
     
     @Override
     public void deregisterInstance(String serviceName, String groupName, Instance instance) throws NacosException {
+        // 取消心跳任务
         if (instance.isEphemeral()) {
             beatReactor.removeBeatInfo(NamingUtils.getGroupedName(serviceName, groupName), instance.getIp(),
                     instance.getPort());
         }
+        // 调用服务端注销
         serverProxy.deregisterService(NamingUtils.getGroupedName(serviceName, groupName), instance);
     }
     

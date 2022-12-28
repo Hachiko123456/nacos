@@ -85,6 +85,7 @@ public class ServiceManager implements RecordListener<Service> {
     /**
      * Map(namespace, Map(group::serviceName, Service)).
      */
+    // namespace - groupName@@serviceName -Service
     private final Map<String, Map<String, Service>> serviceMap = new ConcurrentHashMap<>();
     
     private final LinkedBlockingDeque<ServiceKey> toBeUpdatedServicesQueue = new LinkedBlockingDeque<>(1024 * 1024);

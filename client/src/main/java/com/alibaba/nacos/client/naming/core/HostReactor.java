@@ -61,11 +61,14 @@ public class HostReactor implements Closeable {
     private static final long DEFAULT_DELAY = 1000L;
     
     private static final long UPDATE_HOLD_INTERVAL = 5000L;
-    
+
+    // 服务更新任务
     private final Map<String, ScheduledFuture<?>> futureMap = new HashMap<String, ScheduledFuture<?>>();
-    
+
+    // 服务注册表
     private final Map<String, ServiceInfo> serviceInfoMap;
-    
+
+    // 服务更新表
     private final Map<String, Object> updatingMap;
     
     private final PushReceiver pushReceiver;
@@ -73,7 +76,8 @@ public class HostReactor implements Closeable {
     private final BeatReactor beatReactor;
     
     private final NamingProxy serverProxy;
-    
+
+    // failover处理器
     private final FailoverReactor failoverReactor;
     
     private final String cacheDir;
@@ -193,7 +197,8 @@ public class HostReactor implements Closeable {
             for (Instance host : serviceInfo.getHosts()) {
                 newHostMap.put(host.toInetAddr(), host);
             }
-            
+
+            // 实例的增删改列表
             Set<Instance> modHosts = new HashSet<Instance>();
             Set<Instance> newHosts = new HashSet<Instance>();
             Set<Instance> remvHosts = new HashSet<Instance>();
@@ -247,7 +252,8 @@ public class HostReactor implements Closeable {
             }
             
             serviceInfo.setJsonFromServer(json);
-            
+
+            // 如果实例有变更，则发布InstancesChangeEvent，将serviceInfo写入本地磁盘用作failover
             if (changed) {
                 NotifyCenter.publishEvent(new InstancesChangeEvent(serviceInfo.getName(), serviceInfo.getGroupName(),
                         serviceInfo.getClusters(), serviceInfo.getHosts()));
@@ -255,10 +261,12 @@ public class HostReactor implements Closeable {
             }
             
         } else {
+            // 如果不存在旧的serviceInfo
             changed = true;
             NAMING_LOGGER.info("init new ips(" + serviceInfo.ipCount() + ") service: " + serviceInfo.getKey() + " -> "
                     + JacksonUtils.toJson(serviceInfo.getHosts()));
             serviceInfoMap.put(serviceInfo.getKey(), serviceInfo);
+            // 发布InstancesChangeEvent，将serviceInfo写入本地磁盘用作failover
             NotifyCenter.publishEvent(new InstancesChangeEvent(serviceInfo.getName(), serviceInfo.getGroupName(),
                     serviceInfo.getClusters(), serviceInfo.getHosts()));
             serviceInfo.setJsonFromServer(json);
@@ -294,6 +302,7 @@ public class HostReactor implements Closeable {
     
     public ServiceInfo getServiceInfoDirectlyFromServer(final String serviceName, final String clusters)
             throws NacosException {
+        // GET /nacos/v1/ns/instance/list
         String result = serverProxy.queryList(serviceName, clusters, 0, false);
         if (StringUtils.isNotEmpty(result)) {
             return JacksonUtils.toObj(result, ServiceInfo.class);
@@ -304,14 +313,17 @@ public class HostReactor implements Closeable {
     public ServiceInfo getServiceInfo(final String serviceName, final String clusters) {
         
         NAMING_LOGGER.debug("failover-mode: " + failoverReactor.isFailoverSwitch());
+        // 1.优先判断当前是否处于failover状态，由本地配置文件决定
         String key = ServiceInfo.getKey(serviceName, clusters);
         if (failoverReactor.isFailoverSwitch()) {
             return failoverReactor.getService(key);
         }
-        
+
+        // 2.内存serviceInfoMap中查询ServiceInfo
         ServiceInfo serviceObj = getServiceInfo0(serviceName, clusters);
         
         if (null == serviceObj) {
+            // 内存中不存在，向服务端发起查询
             serviceObj = new ServiceInfo(serviceName, clusters);
             
             serviceInfoMap.put(serviceObj.getKey(), serviceObj);
@@ -321,7 +333,7 @@ public class HostReactor implements Closeable {
             updatingMap.remove(serviceName);
             
         } else if (updatingMap.containsKey(serviceName)) {
-            
+            // 内存中存在，如果正在更新注册表里的这个service，等待更新
             if (UPDATE_HOLD_INTERVAL > 0) {
                 // hold a moment waiting for update finish
                 synchronized (serviceObj) {
@@ -334,9 +346,11 @@ public class HostReactor implements Closeable {
                 }
             }
         }
-        
+
+        // 提交一个任务，定时更新serviceInfo
         scheduleUpdateIfAbsent(serviceName, clusters);
-        
+
+        // 返回内存中的serviceInfo
         return serviceInfoMap.get(serviceObj.getKey());
     }
     
@@ -378,13 +392,15 @@ public class HostReactor implements Closeable {
     public void updateService(String serviceName, String clusters) throws NacosException {
         ServiceInfo oldService = getServiceInfo0(serviceName, clusters);
         try {
-            
+            // GET /nacos/v1/ns/instance/list
             String result = serverProxy.queryList(serviceName, clusters, pushReceiver.getUdpPort(), false);
-            
+
+            // 更新注册表
             if (StringUtils.isNotEmpty(result)) {
                 processServiceJson(result);
             }
         } finally {
+            // 唤醒等待在serviceInfo上的线程
             if (oldService != null) {
                 synchronized (oldService) {
                     oldService.notifyAll();
@@ -456,11 +472,13 @@ public class HostReactor implements Closeable {
                 ServiceInfo serviceObj = serviceInfoMap.get(ServiceInfo.getKey(serviceName, clusters));
                 
                 if (serviceObj == null) {
+                    // 从服务端获取实时注册表，更新至内存
                     updateService(serviceName, clusters);
                     return;
                 }
                 
                 if (serviceObj.getLastRefTime() <= lastRefTime) {
+                    // 从服务端获取实时注册表，更新至内存
                     updateService(serviceName, clusters);
                     serviceObj = serviceInfoMap.get(ServiceInfo.getKey(serviceName, clusters));
                 } else {
@@ -487,6 +505,7 @@ public class HostReactor implements Closeable {
                 incFailCount();
                 NAMING_LOGGER.warn("[NA] failed to update serviceName: " + serviceName, e);
             } finally {
+                // 提交下一次拉去服务注册表任务
                 executor.schedule(this, Math.min(delayTime << failCount, DEFAULT_DELAY * 60), TimeUnit.MILLISECONDS);
             }
         }

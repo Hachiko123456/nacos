@@ -163,9 +163,12 @@ public class BeatReactor implements Closeable {
             }
             long nextTime = beatInfo.getPeriod();
             try {
+                // 发送心跳请求给服务端
                 JsonNode result = serverProxy.sendBeat(beatInfo, BeatReactor.this.lightBeatEnabled);
+                // 服务端可以决定客户端的心跳间隔
                 long interval = result.get("clientBeatInterval").asLong();
                 boolean lightBeatEnabled = false;
+                // 服务端可以决定客户端是否要发送所有BetaInfo信息
                 if (result.has(CommonParams.LIGHT_BEAT_ENABLED)) {
                     lightBeatEnabled = result.get(CommonParams.LIGHT_BEAT_ENABLED).asBoolean();
                 }
@@ -177,6 +180,7 @@ public class BeatReactor implements Closeable {
                 if (result.has(CommonParams.CODE)) {
                     code = result.get(CommonParams.CODE).asInt();
                 }
+                // 如果当前Instance在服务端没找到，尝试注册
                 if (code == NamingResponseCode.RESOURCE_NOT_FOUND) {
                     Instance instance = new Instance();
                     instance.setPort(beatInfo.getPort());
@@ -201,6 +205,7 @@ public class BeatReactor implements Closeable {
                 NAMING_LOGGER.error("[CLIENT-BEAT] failed to send beat: {}, unknown exception msg: {}",
                         JacksonUtils.toJson(beatInfo), unknownEx.getMessage(), unknownEx);
             } finally {
+                // 提交下一次心跳任务
                 executorService.schedule(new BeatTask(beatInfo), nextTime, TimeUnit.MILLISECONDS);
             }
         }
