@@ -360,7 +360,7 @@ public class LongPollingService {
                                         RequestUtil
                                                 .getRemoteIp((HttpServletRequest) clientSub.asyncContext.getRequest()),
                                         "polling", clientSub.clientMd5Map.size(), clientSub.probeRequestSize, groupKey);
-                        // 响应客户端
+                        // 响应客户端的长轮询
                         clientSub.sendResponse(Arrays.asList(groupKey));
                     }
                 }

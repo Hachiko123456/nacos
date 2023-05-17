@@ -123,6 +123,7 @@ public class ConfigServletInner {
         final String groupKey = GroupKey2.getKey(dataId, group, tenant);
         String autoTag = request.getHeader("Vipserver-Tag");
         String requestIpApp = RequestUtil.getAppName(request);
+        // 获取配置项的读锁 1：获取锁成功 0：配置项不存在 -1：获取读锁失败，表示有写操作正在发生
         int lockResult = tryConfigReadLock(groupKey);
         
         final String requestIp = RequestUtil.getRemoteIp(request);
@@ -138,6 +139,7 @@ public class ConfigServletInner {
                     isBeta = true;
                 }
 
+                // 配置文件类型
                 final String configType =
                         (null != cacheItem.getType()) ? cacheItem.getType() : FileTypeEnum.TEXT.getFileType();
                 response.setHeader("Config-Type", configType);
@@ -182,9 +184,13 @@ public class ConfigServletInner {
                         } else {
                             md5 = cacheItem.getMd5();
                             lastModified = cacheItem.getLastModifiedTs();
+                            /**
+                             * 在{@link ConfigCacheService#dump} 备份方法中如果{@link PropertyUtil#isDirectRead()}为false，会把数据备份到本地
+                             */
                             if (PropertyUtil.isDirectRead()) {
                                 configInfoBase = persistService.findConfigInfo(dataId, group, tenant);
                             } else {
+                                // 所以这里直接读取本地文件
                                 file = DiskUtil.targetFile(dataId, group, tenant);
                             }
                             if (configInfoBase == null && fileNotExist(file)) {

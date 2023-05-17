@@ -105,7 +105,9 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
     
     @Override
     public void put(String key, Record value) throws NacosException {
+        // 写入数据
         onPut(key, value);
+        // 把数据同步到其他节点
         distroProtocol.sync(new DistroKey(key, KeyBuilder.INSTANCE_LIST_KEY_PREFIX), DataOperation.CHANGE,
                 globalConfig.getTaskDispatchPeriod() / 2);
     }
@@ -293,6 +295,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
     public boolean processData(DistroData distroData) {
         DistroHttpData distroHttpData = (DistroHttpData) distroData;
         Datum<Instances> datum = (Datum<Instances>) distroHttpData.getDeserializedContent();
+        // 最终调用的还是onPut方法写入数据
         onPut(datum.key, datum.value);
         return true;
     }

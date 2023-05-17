@@ -273,9 +273,11 @@ public class ServerHttpAgent implements HttpAgent {
     public ServerHttpAgent(Properties properties) throws NacosException {
         this.serverListMgr = new ServerListManager(properties);
         this.securityProxy = new SecurityProxy(properties, NACOS_RESTTEMPLATE);
+        // 获取namespace
         this.namespaceId = properties.getProperty(PropertyKeyConst.NAMESPACE);
         init(properties);
         this.start();
+        // 登陆
         this.securityProxy.login(this.serverListMgr.getServerUrls());
         
         // init executorService

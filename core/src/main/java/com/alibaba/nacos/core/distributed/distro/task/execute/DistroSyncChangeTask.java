@@ -44,6 +44,7 @@ public class DistroSyncChangeTask extends AbstractDistroExecuteTask {
             String type = getDistroKey().getResourceType();
             DistroData distroData = distroComponentHolder.findDataStorage(type).getDistroData(getDistroKey());
             distroData.setType(DataOperation.CHANGE);
+            // 调用/v1/ns/distro/datum接口进行数据同步
             boolean result = distroComponentHolder.findTransportAgent(type).syncData(distroData, getDistroKey().getTargetServer());
             if (!result) {
                 handleFailedTask();

@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Nacos execute task execute worker.
+ * 需要立刻执行的任务执行器
  *
  * @author xiweng.yy
  */

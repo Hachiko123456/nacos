@@ -170,7 +170,7 @@ public abstract class DumpService {
             };
             
             try {
-                // 首次启动，dump数据库中所有配置到文件系统和内存中
+                // 启动时，把数据库中所有配置备份到文件系统和内存中
                 dumpConfigInfo(dumpAllProcessor);
                 
                 // update Beta cache

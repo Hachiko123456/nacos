@@ -32,13 +32,15 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Nacos delay task execute engine.
+ * 延迟执行任务引擎
  *
  * @author xiweng.yy
  */
 public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<AbstractDelayTask> {
     
     private final ScheduledExecutorService processingExecutor;
-    
+
+    // 任务列表
     protected final ConcurrentHashMap<Object, AbstractDelayTask> tasks;
     
     protected final ReentrantLock lock = new ReentrantLock();
@@ -63,6 +65,7 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
         super(logger);
         tasks = new ConcurrentHashMap<Object, AbstractDelayTask>(initCapacity);
         processingExecutor = ExecutorFactory.newSingleScheduledExecutorService(new NameThreadFactory(name));
+        // 延迟执行任务
         processingExecutor
                 .scheduleWithFixedDelay(new ProcessRunnable(), processInterval, processInterval, TimeUnit.MILLISECONDS);
     }
@@ -134,6 +137,7 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
     }
     
     /**
+     * 执行任务
      * process tasks in execute engine.
      */
     protected void processTasks() {
@@ -164,7 +168,7 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
         task.setLastProcessTime(System.currentTimeMillis());
         addTask(key, task);
     }
-    
+
     private class ProcessRunnable implements Runnable {
         
         @Override

@@ -99,6 +99,7 @@ public class ConfigCacheService {
                                 + "lastModifiedNew={}", groupKey, md5, ConfigCacheService.getLastModifiedTs(groupKey),
                         lastModifiedTs);
             } else if (!PropertyUtil.isDirectRead()) {
+                // 如果不是单机启动且适用derby数据源，则把数据备份到本地
                 DiskUtil.saveToDisk(dataId, group, tenant, content);
             }
             // 更新内存配置中的md5，发布LocalDataChangeEvent事件
@@ -491,6 +492,7 @@ public class ConfigCacheService {
             cache.md54Beta = md5;
             cache.lastModifiedTs4Beta = lastModifiedTs;
             cache.ips4Beta = ips4Beta;
+            // 发布数据更新事件
             NotifyCenter.publishEvent(new LocalDataChangeEvent(groupKey, true, ips4Beta));
         }
     }

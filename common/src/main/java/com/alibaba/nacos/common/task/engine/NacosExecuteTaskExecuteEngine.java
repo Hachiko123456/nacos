@@ -26,6 +26,7 @@ import java.util.Collection;
 
 /**
  * Nacos execute task execute engine.
+ * 立刻执行的任务引擎
  *
  * @author xiweng.yy
  */
@@ -62,10 +63,12 @@ public class NacosExecuteTaskExecuteEngine extends AbstractNacosTaskExecuteEngin
     @Override
     public void addTask(Object tag, AbstractExecuteTask task) {
         NacosTaskProcessor processor = getProcessor(tag);
+        // 如果有Processor，则通过Processor执行
         if (null != processor) {
             processor.process(task);
             return;
         }
+        // 否则直接调用AbstractExecuteTask#run方法去执行
         TaskExecuteWorker worker = getWorker(tag);
         worker.process(task);
     }

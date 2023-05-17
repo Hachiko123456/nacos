@@ -70,14 +70,15 @@ public class DumpProcessor implements NacosTaskProcessor {
             return DumpConfigHandler.configDump(build.build());
         } else {
             if (StringUtils.isBlank(tag)) {
-                // 查询当前配置
+                // 从数据库中查询当前配置
                 ConfigInfo cf = persistService.findConfigInfo(dataId, group, tenant);
                 
                 build.remove(Objects.isNull(cf));
                 // 设置ConfigDumpEvent的content为最新的content
                 build.content(Objects.isNull(cf) ? null : cf.getContent());
                 build.type(Objects.isNull(cf) ? null : cf.getType());
-                
+
+                // 配置写入本地文件系统且更新内存配置的MD5
                 return DumpConfigHandler.configDump(build.build());
             } else {
                 

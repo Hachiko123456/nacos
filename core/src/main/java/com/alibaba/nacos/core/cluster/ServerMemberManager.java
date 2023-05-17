@@ -106,7 +106,7 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
     
     /**
      * Addressing pattern instances.
-     * nacos自己如何发现nacos服务
+     * 服务发现策略
      */
     private MemberLookup lookup;
     

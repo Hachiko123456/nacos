@@ -215,10 +215,12 @@ public class CacheData {
                         Map data = ConfigChangeHandler.getInstance()
                                 .parseChangeData(listenerWrap.lastContent, content, type);
                         ConfigChangeEvent event = new ConfigChangeEvent(data);
+                        // 触发监听器的逻辑
                         ((AbstractConfigChangeListener) listener).receiveConfigChange(event);
                         listenerWrap.lastContent = content;
                     }
-                    
+
+                    // 更新md5的值
                     listenerWrap.lastCallMd5 = md5;
                     LOGGER.info("[{}] [notify-ok] dataId={}, group={}, md5={}, listener={} ", name, dataId, group, md5,
                             listener);

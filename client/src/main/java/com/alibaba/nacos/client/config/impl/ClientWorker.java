@@ -536,7 +536,7 @@ public class ClientWorker implements Closeable {
                     if (cacheData.getTaskId() == taskId) {
                         cacheDatas.add(cacheData);
                         try {
-                            // 更新内存中的配置
+                            // 通过failover文件更新内存中的配置
                             checkLocalConfig(cacheData);
                             // 判断CacheData是否需要使用failover配置
                             if (cacheData.isUseLocalConfigInfo()) {
@@ -588,6 +588,7 @@ public class ClientWorker implements Closeable {
                 for (CacheData cacheData : cacheDatas) {
                     if (!cacheData.isInitializing() || inInitializingCacheList
                             .contains(GroupKey.getKeyTenant(cacheData.dataId, cacheData.group, cacheData.tenant))) {
+                        // 比较配置的md5，如果发生变化则触发监听器
                         cacheData.checkListenerMd5();
                         cacheData.setInitializing(false);
                     }
